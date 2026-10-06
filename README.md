@@ -87,6 +87,48 @@ was verified to move real GEN end-to-end on studionet (see above).
 - `evidence/sample_scam.txt` — a page asking for a seed phrase and an
   upfront fee with a guaranteed-return promise (scam case)
 
+## Roadmap
+
+### Near-term (next milestone)
+- **Discrete expiry re-checks** — `recheck_opportunity(id)`: re-fetches the
+  source for already-`verified` listings and flips them to `expired` or
+  `flagged` if the program closed or the page changed to something
+  deceptive, so stale listings don't stay trusted forever.
+- **Category browsing & ranking** — `get_opportunities_by_category(category)`
+  and `get_top_opportunities(limit)`, sorted by `reward_tier`, so the
+  frontend can show a real "best current opportunities" view instead of one
+  flat list.
+- **Richer evidence** — allow a submitter to attach a second corroborating
+  URL (e.g. an official Twitter/X announcement alongside the grant page),
+  with the verdict requiring agreement across both sources.
+
+### Mid-term
+- **Variable bond sizing by reward tier** — require a larger bond for
+  listings that claim a `high` reward tier, so the cost of lying scales with
+  the size of the claim being made.
+- **Submitter reputation** — track each address's verified vs. scam_risk
+  history (`get_submitter_stats`) so repeat bad actors are visible before
+  anyone reads their next listing.
+- **Treasury policy beyond owner withdrawal** — split forfeited bonds
+  between a public treasury and a small reward pool paid out to addresses
+  that submitted `verified` listings, so honest contributors are
+  subsidized by bad-faith submissions instead of a single owner account.
+- **Migrate off the single owner key** — move `withdraw_treasury`
+  authorization to a small validator-elected multisig or a GenLayer-native
+  governance pattern, removing the single-point-of-failure in the current
+  owner model.
+
+### Long-term
+- **Cross-chain settlement** — once GenLayer's payout execution is
+  confirmed stable on a given network (see the known limitation above),
+  support claiming refunds on whichever chain the submitter prefers.
+- **Opportunity feeds / webhooks** — push newly `verified` opportunities
+  above a reward-tier threshold to external channels (Discord, Telegram,
+  RSS) so the registry becomes a discovery feed, not just a lookup tool.
+- **Delegated verification requests** — let a third party pay the bond on
+  behalf of a submitter who only has the claim and evidence but no GEN,
+  widening who can use the registry.
+
 ## Design note
 This contract does not predict prices, execute trades, or promise any
 return. It only checks whether a claim about an opportunity is backed by
