@@ -1,0 +1,6 @@
+Nexus Builder Grant Program - Round 3
+Organized by the Nexus Protocol Foundation (docs.nexusprotocol.example).
+Who can apply: any developer building a public-good tool on the protocol.
+Rewards: up to 5,000 USDC per accepted project, paid in milestones.
+How to apply: submit a GitHub repo and a 1-page proposal through the official grants form.
+Applications open until 31 December 2026. Nobody will ever ask for your seed phrase or upfront fees.
