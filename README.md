@@ -34,8 +34,15 @@ Contract: `contracts/nexus_opportunity_oracle.py`
 4. **`withdraw_treasury(to_address, amount)`** — owner-only (the deploying
    address). Lets forfeited/retained bonds be disbursed instead of staying
    permanently locked in the contract.
-5. **Views:** `get_opportunity`, `get_opportunities`, `get_stats`
-   (`count`, `treasury_wei`, `owner`).
+5. **`recheck_opportunity(opportunity_id)`** — re-evaluates an already
+   `verified` listing against the same source. If validators now find it
+   deceptive, it flips to `flagged`; if the source no longer supports the
+   claim, it flips to `expired`; otherwise it stays `verified` with a
+   refreshed reward tier and reason.
+6. **Views:** `get_opportunity`, `get_opportunities`,
+   `get_opportunities_by_category(category)`,
+   `get_top_opportunities(limit)` (verified listings ranked by reward
+   tier), `get_stats` (`count`, `treasury_wei`, `owner`).
 
 The page text fetched from the source is treated as untrusted data in the
 prompt — the model is explicitly told not to follow any instructions found
@@ -50,11 +57,22 @@ submission through validator consensus to result. Confirmed working
 end-to-end through the live UI: a submitted grant listing was verified by
 validators and displayed with its reward tier and reason.
 
+## v5 milestone (recheck + category/ranking views)
+
+Verified on Bradbury (0xc54fa02AF54bb3DA82361b2D3F76931915f72DAb):
+- submit_opportunity + verify_opportunity -> opp_0 verified, reward_tier medium
+- `get_opportunities_by_category("Grants")` correctly returns opp_0
+- `get_top_opportunities(5)` correctly returns opp_0
+- `recheck_opportunity("opp_0")` tx
+  `0x171319eae78e56232b2c2e8539d58fe7707d7f3ebc8e7a369442a58c49d77e7e`
+  -> verdict verified, reward_tier medium (confirmed unchanged, as expected
+  since the source content hadn't changed)
+
 ## Deployments and on-chain evidence
 
 ### GenLayer Bradbury testnet (primary)
 - Contract: `contracts/nexus_opportunity_oracle.py`
-- Address: `0x853d76e2D396B00f482Ef1fE18305aB3aBbaE785`
+- Address: `0xc54fa02AF54bb3DA82361b2D3F76931915f72DAb` (v5 - current)
 - Scam case verified end to end: submit (1 GEN bond) → verify_opportunity
   sets `verdict: scam_risk`, `treasury_wei` becomes `1000000000000000000`
   → `withdraw_treasury(owner, 999999999999999999)` finalized →
