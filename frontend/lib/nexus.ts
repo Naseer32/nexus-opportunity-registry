@@ -2,7 +2,7 @@ import { createClient } from "genlayer-js";
 import { testnetBradbury } from "genlayer-js/chains";
 import { TransactionStatus } from "genlayer-js/types";
 
-export const CONTRACT = (process.env.NEXT_PUBLIC_NEXUS_ADDRESS || "0x853d76e2D396B00f482Ef1fE18305aB3aBbaE785") as `0x${string}`;
+export const CONTRACT = (process.env.NEXT_PUBLIC_NEXUS_ADDRESS || "0xc54fa02AF54bb3DA82361b2D3F76931915f72DAb") as `0x${string}`;
 export const MIN_BOND = 0.01;
 
 export type Opp = {
@@ -22,6 +22,26 @@ const client = (address?: string | null): any =>
 
 export async function getOpps(): Promise<Opp[]> {
   const data = plain(await client().readContract({ address: CONTRACT, functionName: "get_opportunities", args: [] }));
+  return (data as any[]).map((o) => ({
+    id: String(o.id ?? ""), title: String(o.title ?? ""), category: String(o.category ?? ""),
+    source_url: String(o.source_url ?? ""), submitter: String(o.submitter ?? ""), bond: String(o.bond ?? "0"),
+    status: String(o.status ?? ""), verdict: String(o.verdict ?? ""), reward_tier: String(o.reward_tier ?? ""),
+    reason: String(o.reason ?? ""),
+  }));
+}
+
+export async function getOppsByCategory(category: string): Promise<Opp[]> {
+  const data = plain(await client().readContract({ address: CONTRACT, functionName: "get_opportunities_by_category", args: [category] }));
+  return (data as any[]).map((o) => ({
+    id: String(o.id ?? ""), title: String(o.title ?? ""), category: String(o.category ?? ""),
+    source_url: String(o.source_url ?? ""), submitter: String(o.submitter ?? ""), bond: String(o.bond ?? "0"),
+    status: String(o.status ?? ""), verdict: String(o.verdict ?? ""), reward_tier: String(o.reward_tier ?? ""),
+    reason: String(o.reason ?? ""),
+  }));
+}
+
+export async function getTopOpps(limit: number): Promise<Opp[]> {
+  const data = plain(await client().readContract({ address: CONTRACT, functionName: "get_top_opportunities", args: [limit] }));
   return (data as any[]).map((o) => ({
     id: String(o.id ?? ""), title: String(o.title ?? ""), category: String(o.category ?? ""),
     source_url: String(o.source_url ?? ""), submitter: String(o.submitter ?? ""), bond: String(o.bond ?? "0"),

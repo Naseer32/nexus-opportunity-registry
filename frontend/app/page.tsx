@@ -1,7 +1,7 @@
 "use client";
 import { useCallback, useEffect, useState } from "react";
 import { parseEther } from "viem";
-import { CONTRACT, MIN_BOND, Opp, getOpps, getStats, send } from "@/lib/nexus";
+import { CONTRACT, MIN_BOND, Opp, getOpps, getStats, getTopOpps, send } from "@/lib/nexus";
 import { useAccount } from "@/lib/wallet";
 
 const CATS = ["Grants", "Hackathon", "DeFi incentive", "Attention economy", "Airdrop", "Other"];
@@ -18,6 +18,8 @@ export default function Home() {
   const [opps, setOpps] = useState<Opp[]>([]);
   const [stats, setStats] = useState({ count: 0, treasury_wei: "0", owner: "" });
   const [cat, setCat] = useState("All");
+  const [top, setTop] = useState(false);
+  const [topList, setTopList] = useState<Opp[]>([]);
   const [busy, setBusy] = useState(false);
   const [stage, setStage] = useState("");
   const [err, setErr] = useState("");
@@ -26,8 +28,12 @@ export default function Home() {
   const [wTo, setWTo] = useState("");
 
   const load = useCallback(async () => {
-    try { const [o, s] = await Promise.all([getOpps(), getStats()]); setOpps(o); setStats(s); } catch {}
-  }, []);
+    try {
+      const [o, s] = await Promise.all([getOpps(), getStats()]);
+      setOpps(o); setStats(s);
+      if (top) setTopList(await getTopOpps(10));
+    } catch {}
+  }, [top]);
   useEffect(() => { load(); const t = setInterval(load, 15000); return () => clearInterval(t); }, [load]);
 
   const isOwner = !!address && !!stats.owner && address.toLowerCase() === stats.owner.toLowerCase();
@@ -45,13 +51,15 @@ export default function Home() {
     setF({ ...f, title: "", url: "" });
   });
   const verify = (id: string) => act(async () => { await send(address!, "verify_opportunity", [id], BigInt(0), setStage); });
+  const recheck = (id: string) => act(async () => { await send(address!, "recheck_opportunity", [id], BigInt(0), setStage); });
   const withdraw = () => act(async () => {
     if (!wTo.trim() || !wAmount.trim()) throw new Error("Enter a recipient address and amount in wei.");
     await send(address!, "withdraw_treasury", [wTo.trim(), wAmount.trim()], BigInt(0), setStage);
     setWAmount("");
   });
 
-  const list = cat === "All" ? [...opps].reverse() : [...opps].reverse().filter((o) => o.category === cat);
+  const baseList = top ? topList : opps;
+  const list = cat === "All" ? [...baseList].reverse() : [...baseList].reverse().filter((o) => o.category === cat);
 
   return (
     <main className="mx-auto max-w-3xl px-4 py-6">
@@ -104,8 +112,9 @@ export default function Home() {
         </section>
       )}
 
-      <div className="mt-6 flex flex-wrap gap-2">
+      <div className="mt-6 flex flex-wrap items-center gap-2">
         {["All", ...CATS].map((c) => <button key={c} onClick={() => setCat(c)} className={"rounded-full px-3 py-1 text-xs " + (cat === c ? "bg-emerald-400 text-black" : "bg-white/10")}>{c}</button>)}
+        <button onClick={() => setTop(!top)} className={"ml-auto rounded-full px-3 py-1 text-xs " + (top ? "bg-amber-400 text-black" : "bg-white/10")}>Top verified</button>
       </div>
 
       <div className="mt-4 space-y-3">
@@ -120,6 +129,7 @@ export default function Home() {
             <div className="mt-3 flex items-center gap-2">
               <a href={o.source_url} target="_blank" rel="noopener noreferrer" className="text-xs text-sky-400 underline">Source</a>
               {o.status === "pending" && <button disabled={!address || busy} onClick={() => verify(o.id)} className="rounded-lg bg-white/10 px-3 py-1 text-xs disabled:opacity-40">Verify with validators</button>}
+              {o.status === "verified" && <button disabled={!address || busy} onClick={() => recheck(o.id)} className="rounded-lg bg-white/10 px-3 py-1 text-xs disabled:opacity-40">Recheck</button>}
             </div>
           </article>
         ))}

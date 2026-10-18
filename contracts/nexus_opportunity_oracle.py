@@ -5,6 +5,7 @@ import json
 MIN_BOND = 10**16
 VERDICTS = ("verified", "unverified", "scam_risk")
 TIERS = ("none", "low", "medium", "high")
+TIER_RANK = {"none": 0, "low": 1, "medium": 2, "high": 3}
 
 
 class NexusOpportunityOracle(gl.Contract):
@@ -125,6 +126,31 @@ class NexusOpportunityOracle(gl.Contract):
         return rec["status"]
 
     @gl.public.write
+    def recheck_opportunity(self, opportunity_id: str) -> str:
+        if opportunity_id not in self.opportunities:
+            raise Exception("Not found")
+        rec = json.loads(self.opportunities[opportunity_id])
+        if rec["status"] != "verified":
+            raise Exception("Only verified opportunities can be rechecked")
+
+        res = self._evaluate(rec["source_url"], rec["title"], rec["category"])
+
+        if res["verdict"] == "scam_risk":
+            rec["status"] = "flagged"
+            rec["reward_tier"] = "none"
+        elif res["verdict"] == "unverified":
+            rec["status"] = "expired"
+            rec["reward_tier"] = "none"
+        else:
+            rec["status"] = "verified"
+            rec["reward_tier"] = res["reward_tier"]
+
+        rec["verdict"] = res["verdict"]
+        rec["reason"] = res["reason"]
+        self.opportunities[opportunity_id] = json.dumps(rec)
+        return rec["status"]
+
+    @gl.public.write
     def withdraw_treasury(self, to_address: str, amount: str) -> str:
         if gl.message.sender_address.as_hex.lower() != self.owner.lower():
             raise Exception("Only owner can withdraw treasury")
@@ -142,6 +168,25 @@ class NexusOpportunityOracle(gl.Contract):
     @gl.public.view
     def get_opportunities(self) -> list:
         return [json.loads(self.opportunities[i]) for i in self.all_ids]
+
+    @gl.public.view
+    def get_opportunities_by_category(self, category: str) -> list:
+        out = []
+        for i in self.all_ids:
+            rec = json.loads(self.opportunities[i])
+            if rec["category"] == category:
+                out.append(rec)
+        return out
+
+    @gl.public.view
+    def get_top_opportunities(self, limit: int) -> list:
+        out = []
+        for i in self.all_ids:
+            rec = json.loads(self.opportunities[i])
+            if rec["status"] == "verified":
+                out.append(rec)
+        out.sort(key=lambda r: TIER_RANK.get(r["reward_tier"], 0), reverse=True)
+        return out[:limit]
 
     @gl.public.view
     def get_stats(self) -> dict:
